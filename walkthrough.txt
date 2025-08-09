@@ -1,0 +1,103 @@
+1. Data Structures
+Hash Maps: Store {shortCode → originalURL} and {originalURL → shortCode} for fast lookups and duplication checks.
+Trie (Prefix Tree): Enable autocomplete and search on shortCodes.
+Rate Limiting: Use a Token Bucket or Sliding Window, with hash maps keyed by IP/user.
+Analytics: Store hit counts using Redis hash maps or approximate unique users with a Counting Bloom Filter.
+On-Chain/Decentralized Storage: Decide if you want every mapping on-chain, via Solidity smart contract, or off-chain (e.g., IPFS).
+
+2. Backend Implementation
+URL Shortening & Encoding
+Hash long URLs with SHA256/Blake2b.
+Encode to base62 for compact short codes.
+Check for hash collisions before assigning.
+
+Hash Map Storage
+Use Redis (ideal) or in-memory map for {shortCode → originalURL}.
+Store both normal and reverse mapping for deduplication.
+
+Trie Search
+Build a Trie tree in backend: add every shortCode; implement search/autocomplete endpoint.
+
+Rate Limiting
+For API endpoints, implement per-user/IP counter with sliding windows or token buckets. Use Redis for durability.
+
+Analytics
+Increment counters per hit.
+For unique visitors, consider Bloom Filter or Redis Sets keyed by shortCode.
+
+3. On-chain/Decentralized Integration (Optional)
+Smart Contract
+Solidity mapping: mapping(bytes32 => string) public urlMappings.
+Consider only storing hashes + metadata for privacy/cost.
+
+IPFS Integration
+Store metadata (JSON) {shortCode, originalURL, creator, timestamp}.
+Save IPFS hash in backend or on-chain (reference only).
+
+4. Frontend Implementation
+React + Next.js UI: Form for input, autocomplete using Trie API, analytics visualization (Chart.js/D3).
+Optionally, add user authentication with JWT/OAuth.
+
+
+blockshort/                  # Project root
+├── backend/                 # Backend service
+│   ├── src/
+│   │   ├── config/           # Config files (Redis, IPFS, env vars)
+│   │   ├── data/             # Data structure implementations
+│   │   │   ├── hashMap.js    # URL mapping storage
+│   │   │   ├── trie.js       # Prefix search
+│   │   │   ├── rateLimiter.js# Token Bucket / Sliding Window impl
+│   │   │   └── analytics.js  # Hit counter / Bloom Filter
+│   │   ├── routes/           # API endpoints
+│   │   ├── services/         # URL shortener logic
+│   │   ├── utils/            # Helpers (hashing, encoding)
+│   │   ├── app.js            # Express app
+│   │   └── server.js         # Entry point
+│   ├── package.json
+│   └── .env
+│
+├── frontend/                 # Optional React/Next.js app
+│   └── ...
+│
+├── docs/                     # Documentation (API, setup guides)
+└── README.md
+
+
+1. Install Redis: brew install redis
+2. Start Redis Server
+After installation, start Redis with: brew services start redis
+Or run manually: redis-server /usr/local/etc/redis.conf
+3. Verify Redis Is Running
+Test the connection using: redis-cli ping
+You should see: PONG
+
+install IPFS CLI on your machine: brew install ipfs
+Download from https://ipfs.io/docs/install/
+Install and initialize:
+ipfs init
+ipfs daemon
+Keep the daemon running while you use your backend.
+
+
+shorted url - curl -X POST -H "Content-Type: application/json" \
+     -d '{"originalURL":"https://www.example.com/some/long/path"}' \
+     http://localhost:3001/api/shorten
+expected - {"shortCode":"HWf3dA37","ipfsHash":"Qmby8Pzg8P37sTzdSqpG1DimPQYXweJDTi1fpVt6GTBLYA"}%   
+
+resolve the short url - curl http://localhost:3001/api/resolve/HWf3dA37
+expected - { "originalURL": "https://www.example.com/some/long/path" }
+
+check stats - curl http://localhost:3001/api/stats/HWf3dA37
+expected - { "hits": 1 }
+
+search by prefix - curl "http://localhost:3001/api/search?prefix=HWf"
+expected - { "results": ["HWf3dA37"] }
+
+
+
+View IPFS Metadata
+If IPFS is running locally:
+ipfs cat Qmby8Pzg8P37sTzdSqpG1DimPQYXweJDTi1fpVt6GTBLYA
+Or through a public IPFS gateway:
+https://ipfs.io/ipfs/Qmby8Pzg8P37sTzdSqpG1DimPQYXweJDTi1fpVt6GTBLYA
+expected - {"shortCode":"HWf3dA37","originalURL":"https://www.example.com/some/long/path","creator":"anon","timestamp":1754716415104}% 
