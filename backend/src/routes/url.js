@@ -17,8 +17,8 @@ router.post('/shorten', async (req, res, next) => {
 }, async (req, res) => {
   const { originalURL } = req.body;
   // Hashing and encoding (implement hashShortCode elsewhere)
-  //  const shortCode = hashShortCode(originalURL);  // base62 + SHA256
-  //   await setMapping(shortCode, originalURL);
+  // const shortCode = hashShortCode(originalURL);  // base62 + SHA256
+  // await setMapping(shortCode, originalURL);
   const shortCode = await getUniqueShortCode(originalURL);
   await setMapping(shortCode, originalURL); // Now safe to store the mapping
   trie.insert(shortCode);
